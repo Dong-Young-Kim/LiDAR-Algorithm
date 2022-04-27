@@ -37,8 +37,8 @@
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-#include "DBSCAN_smpg.h"
-#include "sampling.h"
+#include <sampling_algorithm/DBSCAN_smpg.h>
+#include <sampling_algorithm/sampling.h>
 
 using namespace std;
 
@@ -121,10 +121,11 @@ void UPSMP(PCXYZI::Ptr input_cloud, PCXYZI::Ptr upsampledCloud){
 
     PCXYZI::Ptr new_point(new PCXYZI);
     SMPG<PXYZI> smp;
-    smp.setCorePointMinPts(3);
+    //smp.setCorePointMinPts(3);
     smp.setClusterTolerance(0.05);
-    smp.setMinClusterSize(5);
-    smp.setMaxClusterSize(25000);
+    smp.setUpsampleStepSize(0.1);
+    //smp.setMinClusterSize(5);
+    //smp.setMaxClusterSize(25000);
     smp.setSearchMethod(tree);
     smp.setInputCloud(input_cloud);
     smp.upsample(new_point);

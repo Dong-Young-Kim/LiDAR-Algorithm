@@ -18,21 +18,13 @@
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/kdtree/kdtree_flann.h>
 
-#define UN_PROCESSED 0
-#define PROCESSING 1
-#define PROCESSED 2
-
 using namespace std;
-
-// inline bool comparePointClusters_hb (const pcl::PointIndices &a, const pcl::PointIndices &b) {
-//     return (a.indices.size () < b.indices.size ());
-// }
 
 class PointInfo_SAM{ 
     template<typename PointT> friend class SMPG;
 public:
     PointInfo_SAM();
-    PointInfo_SAM(int self_idx, double eps, int minPts, pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud, pcl::search::KdTree<pcl::PointXYZI>::Ptr tree);
+    PointInfo_SAM(int self_idx, double eps, pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud, pcl::search::KdTree<pcl::PointXYZI>::Ptr tree);
     void setSearchMethod(pcl::search::KdTree<pcl::PointXYZI>::Ptr tree) {search_method = tree;}  
     void calc_eps();
     void get_nearPoint_info();
@@ -40,28 +32,19 @@ public:
     void PointAngle(){
        double z = input_cloud->points[self_idx].z;
        double xy_dist = sqrt(input_cloud->points[self_idx].x * input_cloud->points[self_idx].x + input_cloud->points[self_idx].y * input_cloud->points[self_idx].y);
-       this -> laserId = round(atan2(z, xy_dist) * 180/3.1415926535897);
+       this -> laserId = round(atan2(z, xy_dist) * 180/M_PI);
     }
-
 
 protected:
     int self_idx;
-    int ID;
     double eps;
-    int minPts;
-    bool noise;
-    int state;
     int laserId;
 
     pcl::search::KdTree<pcl::PointXYZI>::Ptr search_method;
     pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud;
     vector<int> near_point; //indices로 near point 인덱스들 넣기로 수정
     vector<float> sqr_dist; //near point 거리
-    pcl::PointIndices inliers;
-
-    
 };
-
 
 template <typename PointT>
 class SMPG {
@@ -71,34 +54,22 @@ public:
 
     KdTreePtr search_method;
 
-    SMPG(){
-        for(int i=0;i<16;i++){
-            channelCloudPtr[i].reset(new pcl::PointCloud<pcl::PointXYZI>());
-            grid[i].reset(new pcl::search::KdTree<pcl::PointXYZI>());
-        }
-    }
-
+    SMPG();
     void setInputCloud(PointCloudPtr cloud) {input_cloud = cloud;}
     void setSearchMethod(KdTreePtr tree) {search_method = tree;}    
     void setClusterTolerance(double tolerance) {eps = tolerance;}
-    void setMinClusterSize (int min_cluster_size) {min_pts_per_cluster = min_cluster_size;}
-    void setMaxClusterSize (int max_cluster_size) {max_pts_per_cluster = max_cluster_size;}
-    void setCorePointMinPts(int core_point_min_pts) {minPts = core_point_min_pts;}
+    void setUpsampleStepSize(double stepSize) {upsampleStepSize = stepSize;}
     void initializer_pointinfo();
-    //void extract(std::vector<pcl::PointIndices>& cluster_indices);
     void upsample(PointCloudPtr cloud);
 
 private:
     PointCloudPtr input_cloud;
     PointCloudPtr channelCloudPtr[16];
-    KdTreePtr grid[16];       
+    KdTreePtr grid[16];
 
     double eps = 0;
-    int minPts = 1; // not including the point itself.
-    int min_pts_per_cluster = 1;
-    int max_pts_per_cluster = std::numeric_limits<int>::max();
+    double upsampleStepSize = 0.1;
     vector<PointInfo_SAM> PCinfo;
-
 };
 
 #endif //smpg
@@ -106,13 +77,12 @@ private:
 
 PointInfo_SAM::PointInfo_SAM(){};
 
-PointInfo_SAM::PointInfo_SAM(int self_idx_, double eps_, int minPts_, pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud_, pcl::search::KdTree<pcl::PointXYZI>::Ptr tree)
-    :self_idx(self_idx_), ID(0), eps(eps_), minPts(minPts_), input_cloud(input_cloud_), noise(0), state(UN_PROCESSED), search_method(tree)
+PointInfo_SAM::PointInfo_SAM(int self_idx_, double eps_, pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud_, pcl::search::KdTree<pcl::PointXYZI>::Ptr tree)
+    :self_idx(self_idx_), eps(eps_), input_cloud(input_cloud_), search_method(tree)
 {
     near_point.push_back(self_idx);
     calc_eps();
-    PointAngle();    
-    get_nearPoint_info();
+    PointAngle();
 }
 
 void PointInfo_SAM::calc_eps(){
@@ -127,18 +97,21 @@ void PointInfo_SAM::calc_eps(){
     this -> eps = 0.05 * cur_dist;
 }
 
-void PointInfo_SAM::get_nearPoint_info(){
-    search_method->radiusSearch(self_idx, eps, near_point, sqr_dist);
+template <typename PointT>
+SMPG<PointT>::SMPG(){
+        for(int i=0;i<16;i++){
+            channelCloudPtr[i].reset(new pcl::PointCloud<pcl::PointXYZI>());
+            grid[i].reset(new pcl::search::KdTree<pcl::PointXYZI>());
+        }
 }
 
 template <typename PointT>
 void SMPG<PointT>::initializer_pointinfo(){
     for(int i = 0; i < input_cloud -> points.size(); i++){
-        PointInfo_SAM tmp(i, eps, minPts, input_cloud, search_method);
+        PointInfo_SAM tmp(i, eps, input_cloud, search_method);
         PCinfo.push_back(tmp);
         //채널로 분류된 포인트를 배열에 넣는다.
-        channelCloudPtr[(tmp.laserId + 15) / 2]->push_back(input_cloud->points[tmp.self_idx]);
-        
+        channelCloudPtr[(tmp.laserId + 15) / 2]->push_back(input_cloud->points[tmp.self_idx]);        
     }
 
     //channelCloud 내부 포인트를 grid 트리 내부에 넣는다.
@@ -151,19 +124,15 @@ template <typename PointT>
 void SMPG<PointT>::upsample(PointCloudPtr cloud){
     initializer_pointinfo();
 
-    for (int i = 0; i < 16; i++)
-        cout << "channel " << i << " : " << channelCloudPtr[i]->points.size() << endl;
+    //for (int i = 0; i < 16; i++)
+        //cout << "channel " << i << " : " << channelCloudPtr[i]->points.size() << endl;
 
-    // 채널 부여
+    // intensity로 채널 부여
     for(int i = 0; i < input_cloud -> points.size(); i++){
         this->input_cloud->points[i].intensity = PCinfo[i].laserId;
     }
-    //*cloud += *input_cloud;
-
 
     for(int i = 0; i < input_cloud -> points.size(); i++){//모든 포인트에 대해서 연산
-
-
         //다른 채널인 것 중 가장 가까운 포인트 찾기
         vector<int> idx;
         vector<float> sqr_dist; //near point "제곱!!!"거리
@@ -173,15 +142,10 @@ void SMPG<PointT>::upsample(PointCloudPtr cloud){
         if(idx.size()==0) continue;
         if(sqrt(sqr_dist[0]) > PCinfo[i].eps) continue;
 
-        //cout << idx[0] << " " << sqrt(sqr_dist[0]) << endl;
-
-        double height = 0.05; //0.05m
+        double height = upsampleStepSize; //0.05m
         int line_num = sqrt(sqr_dist[0]) / height;
 
-
-
         //스템 사이즈 맞춰 포인트 추가        
-        //int nnPoint_index_REAL = idx[0];
         double line_dist_x, line_dist_y, line_dist_z;
         if (line_num != 0) {
             line_dist_x = abs(input_cloud->points[i].x - channelCloudPtr[(PCinfo[i].laserId + 15) / 2 + 1]->points[idx[0]].x) / (line_num + 1);
@@ -201,6 +165,7 @@ void SMPG<PointT>::upsample(PointCloudPtr cloud){
 }
 
 /*
+//radius search 기반 upsample 알고리즘
 template <typename PointT>
 void SMPG<PointT>::upsample(PointCloudPtr cloud){
     initializer_pointinfo();
@@ -260,6 +225,5 @@ void SMPG<PointT>::upsample(PointCloudPtr cloud){
 
     }
     //*cloud = *input_cloud;
-
 }
 */

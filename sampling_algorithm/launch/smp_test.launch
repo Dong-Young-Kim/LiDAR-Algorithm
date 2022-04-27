@@ -8,8 +8,8 @@
     <param name="switch_ROI" value="false"/>
     <param name="ROI_xMin" value="1.5"/>
     <param name="ROI_xMax" value="8.5"/>
-    <param name="ROI_yMin" value="-5"/>
-    <param name="ROI_yMax" value="5"/>
+    <param name="ROI_yMin" value="-3"/>
+    <param name="ROI_yMax" value="3"/>
     <param name="ROI_zMin" value="-1.55"/>
     <param name="ROI_zMax" value="1.5"/>
 
