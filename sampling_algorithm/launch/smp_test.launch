@@ -1,0 +1,21 @@
+<launch>
+
+  <include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch"/>
+
+  <node pkg="rviz" type="rviz" name="rviz" args="-f velodyne"/>  
+
+  <node pkg="sampling_algorithm" type="sampling" name="smp_tst" output="screen">
+    <param name="switch_ROI" value="false"/>
+    <param name="ROI_xMin" value="1.5"/>
+    <param name="ROI_xMax" value="8.5"/>
+    <param name="ROI_yMin" value="-5"/>
+    <param name="ROI_yMax" value="5"/>
+    <param name="ROI_zMin" value="-1.55"/>
+    <param name="ROI_zMax" value="1.5"/>
+
+    <param name="US_searchRadius" value="0.035"/>
+    <param name="US_upsamplingRadius" value="0.035"/>
+    <param name="US_upsamplingStepSize" value="0.035"/> <!--작을 수록 많이 업샘-->
+  </node>
+
+</launch>
