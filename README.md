@@ -1,8 +1,8 @@
 # LiDAR-Sampling-Algorithm
 for maintain the number of LiDAR points constant, regardless of distance
 
-![Ubuntu](https://img.shields.io/badge/-ROS-lightgrey)
-![ROS](https://img.shields.io/badge/-Ubuntu-orange)
+![Ubuntu](https://img.shields.io/badge/-Ubuntu-orange)
+![ROS](https://img.shields.io/badge/-ROS-lightgrey)
 
 ## Operating Environment
 - OS     : ubuntu 20.04
