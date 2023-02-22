@@ -1,11 +1,12 @@
-#LiDAR-Sampling-Algorithm
+# LiDAR-Sampling-Algorithm
+for maintain the number of LiDAR points constant, regardless of distance
 
 ![Ubuntu](https://img.shields.io/badge/-ROS-lightgrey)
 ![ROS](https://img.shields.io/badge/-Ubuntu-orange)
 
 ## Operating Environment
 - OS     : ubuntu 20.04
-- ROS    : noetic (pcl & openCV required)
+- ROS    : noetic (pcl required)
 - sensor : Velodyne VLP-16 (16channel)
 
 ## How to use
