@@ -5,9 +5,10 @@ for maintain the number of LiDAR points constant, regardless of distance
 ![ROS](https://img.shields.io/badge/-ROS-lightgrey)
 
 ## Operating Environment
-- OS     : ubuntu 20.04
-- ROS    : noetic (pcl required)
-- sensor : Velodyne VLP-16 (16channel)
+- OS      : Ubuntu 20.04 Focal Fossa
+- ROS     : Noetic
+- Library : Point Cloud Library (pcl-ros) 
+- Sensor  : Velodyne VLP-16
 
 ## How to use
 1. Build package through the 'catkin_make' build system
